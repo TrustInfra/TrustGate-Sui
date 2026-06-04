@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+/*
+ * TrustGate brand theme. Dark navy base, single cold-cyan accent, high contrast.
+ * Headings use Syne (--font-syne), body uses Geist (--font-geist).
+ */
+@theme {
+  --color-navy: #0a0f1e;
+  --color-surface: #111726;
+  --color-surface-2: #0d1320;
+  --color-border: #1d2740;
+  --color-fg: #f5f7fa;
+  --color-muted: #7d8aa5;
+  --color-accent: #44dcea;
+  --color-accent-dim: #2a8893;
+  --color-positive: #4ade80;
+  --color-negative: #f87171;
+
+  --font-sans: var(--font-geist);
+  --font-display: var(--font-syne);
+}
+
+html,
+body {
+  background: var(--color-navy);
+  color: var(--color-fg);
+}
+
+body {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+/* dapp-kit connect button, themed to match the brand surface. */
+:root {
+  --dapp-kit-background-color: var(--color-surface);
+  --dapp-kit-button-background-color: var(--color-surface);
+}
