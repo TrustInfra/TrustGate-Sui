@@ -4,8 +4,8 @@
  * Usage on any site (e.g. a DEX):
  *
  *   <script
- *     src="https://YOUR-APP-DOMAIN/widget.js"
- *     data-api="https://YOUR-APP-DOMAIN/api/coin"
+ *     src="https://sui.trustgated.xyz/widget.js"
+ *     data-api="https://sui.trustgated.xyz/api/coin"
  *     defer></script>
  *
  *   <span data-trustgate-coin="0x2::sui::SUI"></span>
@@ -23,13 +23,8 @@
   var thisScript = document.currentScript;
   var API =
     (thisScript && thisScript.getAttribute("data-api")) ||
-    "https://REPLACE-WITH-YOUR-APP-DOMAIN/api/coin";
+    "https://sui.trustgated.xyz/api/coin";
 
-  if (API.indexOf("REPLACE-WITH-YOUR-APP-DOMAIN") !== -1) {
-    console.warn(
-      "[TrustGate] Set data-api on the widget script tag to your deployed /api/coin URL.",
-    );
-  }
 
   var TIERS = {
     VERIFIED: { c: "#2DD4BF", l: "Verified" },

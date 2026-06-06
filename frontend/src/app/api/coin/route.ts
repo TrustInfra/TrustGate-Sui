@@ -10,7 +10,7 @@
  * public good, so any origin may read it.
  *
  * Set COIN_ORACLE_URL in the environment, e.g.
- *   COIN_ORACLE_URL=http://155.133.22.33:3002
+ *   COIN_ORACLE_URL=https://your-oracle-url
  * and later swap for the https tunnel URL with no frontend change.
  */
 

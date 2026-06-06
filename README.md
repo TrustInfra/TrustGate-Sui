@@ -100,8 +100,8 @@ Any site can show a TrustGate badge. Add the script once, then mark any element 
 
 ```html
 <script
-  src="https://your-domain/widget.js"
-  data-api="https://your-domain/api/coin"
+  src="https://sui.trustgated.xyz/widget.js"
+  data-api="https://sui.trustgated.xyz/api/coin"
   defer></script>
 
 <span data-trustgate-coin="0x2::sui::SUI"></span>

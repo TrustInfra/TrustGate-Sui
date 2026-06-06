@@ -247,8 +247,8 @@ export default function DocsPage() {
               </p>
               <pre className="overflow-x-auto rounded-xl border border-slate-800 bg-[#0d1426] p-4 text-xs leading-relaxed text-slate-300">
 {`<script
-  src="https://your-domain/widget.js"
-  data-api="https://your-domain/api/coin"
+  src="https://sui.trustgated.xyz/widget.js"
+  data-api="https://sui.trustgated.xyz/api/coin"
   defer></script>
 
 <span data-trustgate-coin="0x2::sui::SUI"></span>`}
