@@ -8,6 +8,8 @@ export const EVM_SITE = "https://trustgated.xyz";
 
 const LINKS: Array<{ label: string; href: string; external: boolean }> = [
   { label: "TokenShield", href: "/token-shield", external: false },
+  { label: "Trust Score", href: "/trust-score", external: false },
+  { label: "Dashboard", href: "/dashboard", external: false },
   { label: "Docs", href: "/docs", external: false },
   { label: "EVM", href: EVM_SITE, external: true },
 ];
