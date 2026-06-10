@@ -10,6 +10,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Transaction } from "@mysten/sui/transactions";
 import type { SuiTransactionBlockResponse } from "@mysten/sui/jsonRpc";
 import { Panel, StatRow } from "./Panel";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { useTrustCap } from "@/hooks/useTrustCap";
 import { useStandardSizeLimit, useTotalOrders } from "@/hooks/usePool";
 import { GATED_POOL_ID, PACKAGE_ID, SIDE, TARGET } from "@/lib/trustgate-sui";
@@ -115,14 +117,17 @@ export function GatedPoolWidget() {
 
   return (
     <Panel title="Gated Pool" eyebrow="03 / DeepBook demo">
-      <div className="mb-5 grid grid-cols-2 gap-3 text-sm">
-        <StatRow label="Total orders">{totalOrders ?? "—"}</StatRow>
-        <StatRow label="Your tier">
-          {isElite ? "ELITE" : cap ? "STANDARD" : "—"}
-        </StatRow>
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <span className="font-mono text-xs uppercase tracking-[0.18em] text-[#5A6478]">
+          Your tier
+        </span>
+        <Badge intent={cap ? "accent" : "default"}>
+          {isElite ? "Elite" : cap ? "Standard" : "-"}
+        </Badge>
       </div>
+      <StatRow label="Total orders">{totalOrders ?? "-"}</StatRow>
 
-      <div className="space-y-4">
+      <div className="mt-6 space-y-4">
         <div>
           <Label>Side</Label>
           <div className="flex gap-2">
@@ -147,43 +152,43 @@ export function GatedPoolWidget() {
         </div>
 
         {exceedsStandardLimit ? (
-          <p className="text-sm text-negative">
+          <p className="text-sm leading-relaxed text-red-400">
             Size exceeds the standard limit ({sizeLimit?.toString()}). Elite cap
             required for larger orders.
           </p>
         ) : null}
 
-        <button
-          type="button"
-          onClick={onSubmit}
-          disabled={!canSubmit}
-          className="w-full rounded border border-accent bg-accent/10 px-4 py-3 font-mono text-sm font-semibold uppercase tracking-widest text-accent transition hover:bg-accent/20 disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-muted"
-        >
+        <Button onClick={onSubmit} disabled={!canSubmit} className="w-full">
           {isPending
             ? "Placing order…"
             : isElite
               ? "Place elite order"
               : "Place gated order"}
-        </button>
+        </Button>
 
         {!hasValidCap ? (
-          <p className="text-sm leading-relaxed text-negative">
-            No TrustedAgentCap, you do not qualify yet.
-            {cap && !capData?.isValid
-              ? " The cap held by this wallet has expired."
-              : ""}
-          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start">
+            <Badge intent={cap && !capData?.isValid ? "danger" : "warn"}>
+              {cap && !capData?.isValid ? "Expired" : "No cap"}
+            </Badge>
+            <span className="text-sm leading-relaxed text-[#8A93A6]">
+              No TrustedAgentCap, you do not qualify yet.
+              {cap && !capData?.isValid
+                ? " The cap held by this wallet has expired."
+                : ""}
+            </span>
+          </div>
         ) : null}
 
         {formError ? (
-          <p className="text-sm text-negative">{formError}</p>
+          <p className="text-sm leading-relaxed text-red-400">{formError}</p>
         ) : null}
 
         {placed ? (
-          <div className="rounded border border-positive/40 bg-positive/5 p-4">
-            <p className="mb-2 font-mono text-xs uppercase tracking-widest text-positive">
-              OrderPlaced
-            </p>
+          <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-4">
+            <div className="mb-3">
+              <Badge intent="success">OrderPlaced</Badge>
+            </div>
             <StatRow label="Order id">{placed.order_id}</StatRow>
             <StatRow label="Side">
               {placed.side === String(SIDE.BID) ? "Bid" : "Ask"}
@@ -200,7 +205,7 @@ export function GatedPoolWidget() {
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <label className="mb-1.5 block font-mono text-xs uppercase tracking-widest text-muted">
+    <label className="mb-1.5 block font-mono text-xs uppercase tracking-[0.18em] text-[#5A6478]">
       {children}
     </label>
   );
@@ -222,7 +227,7 @@ function Field({
         inputMode="numeric"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded border border-border bg-surface-2 px-3 py-2 font-mono text-sm outline-none focus:border-accent"
+        className="w-full rounded-xl border border-white/[0.08] bg-[#0A0F1E] px-4 py-3 font-mono text-sm text-[#E6EAF2] outline-none transition placeholder:text-[#5A6478] focus:border-[#44DCEA]/60 focus:ring-2 focus:ring-[#44DCEA]/20"
       />
     </div>
   );
@@ -241,10 +246,10 @@ function SideButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex-1 rounded border px-3 py-2 font-mono text-sm uppercase tracking-widest transition ${
+      className={`flex-1 rounded-xl border px-3 py-2 font-mono text-sm uppercase tracking-[0.15em] transition ${
         active
-          ? "border-accent bg-accent/10 text-accent"
-          : "border-border text-muted hover:text-fg"
+          ? "border-[#44DCEA]/40 bg-[#44DCEA]/10 text-[#44DCEA]"
+          : "border-white/[0.08] text-[#8A93A6] hover:text-[#E6EAF2]"
       }`}
     >
       {children}

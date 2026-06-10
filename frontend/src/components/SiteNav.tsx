@@ -2,115 +2,135 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { ConnectButton } from "@mysten/dapp-kit";
+import { Badge } from "@/components/ui/Badge";
 
 // TrustGate EVM site. Single source of truth, imported where needed.
 export const EVM_SITE = "https://trustgated.xyz";
 
-const LINKS: Array<{ label: string; href: string; external: boolean }> = [
-  { label: "TokenShield", href: "/token-shield", external: false },
-  { label: "Trust Score", href: "/trust-score", external: false },
-  { label: "Dashboard", href: "/dashboard", external: false },
-  { label: "Docs", href: "/docs", external: false },
+const NAV_LINKS: ReadonlyArray<{ label: string; href: string; external?: boolean }> = [
+  { label: "TokenShield", href: "/token-shield" },
+  { label: "Trust Score", href: "/trust-score" },
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "Docs", href: "/docs" },
   { label: "EVM", href: EVM_SITE, external: true },
 ];
 
+/**
+ * SiteNav is the shared header for every route. It carries the brand mark, the
+ * primary links, and the wallet connect control. On narrow screens the links
+ * collapse into a dropdown that closes on outside click, Escape, or selection.
+ */
 export function SiteNav() {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    if (!open) return;
+    function onPointer(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
     }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
     }
-    document.addEventListener("mousedown", onClick);
+    document.addEventListener("mousedown", onPointer);
     document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("mousedown", onPointer);
       document.removeEventListener("keydown", onKey);
     };
-  }, []);
+  }, [open]);
 
   return (
-    <header className="relative z-30 mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-5">
-      <Link href="/" className="flex items-center gap-2.5">
-        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-teal-400/15 text-sm font-bold text-teal-300">
-          T
-        </span>
-        <span className="text-sm font-semibold tracking-tight text-slate-100">
-          TrustGate<span className="ml-1.5 font-normal text-slate-500">Sui</span>
-        </span>
-      </Link>
+    <header className="sticky top-0 z-50 border-b border-white/[0.08] bg-[#0A0F1E]/80 backdrop-blur-md">
+      <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
+        <Link href="/" className="flex items-center gap-3">
+          <span className="text-lg font-semibold tracking-tight text-[#E6EAF2]">TrustGate</span>
+          <Badge intent="accent">Sui Testnet</Badge>
+        </Link>
 
-      <div className="relative" ref={ref}>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-label="Menu"
-          aria-expanded={open}
-          className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-800/40 text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            aria-hidden
-          >
-            {open ? (
-              <>
-                <line x1="6" y1="6" x2="18" y2="18" />
-                <line x1="6" y1="18" x2="18" y2="6" />
-              </>
+        <nav className="hidden items-center gap-7 md:flex">
+          {NAV_LINKS.map((link) =>
+            link.external ? (
+              <a
+                key={link.href}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-[#8A93A6] transition-colors hover:text-[#E6EAF2]"
+              >
+                {link.label}
+              </a>
             ) : (
-              <>
-                <line x1="4" y1="7" x2="20" y2="7" />
-                <line x1="4" y1="12" x2="20" y2="12" />
-                <line x1="4" y1="17" x2="20" y2="17" />
-              </>
-            )}
-          </svg>
-        </button>
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-sm text-[#8A93A6] transition-colors hover:text-[#E6EAF2]"
+              >
+                {link.label}
+              </Link>
+            ),
+          )}
+        </nav>
 
-        {open && (
-          <div className="absolute right-0 top-12 z-40 w-48 overflow-hidden rounded-xl border border-slate-700 bg-[#0d1426] py-1.5 shadow-xl shadow-black/40">
-            {LINKS.map((l) =>
-              l.external ? (
-                <a
-                  key={l.label}
-                  href={l.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => setOpen(false)}
-                  className="block px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800/60 hover:text-slate-100"
-                >
-                  {l.label}
-                </a>
-              ) : (
-                <Link
-                  key={l.label}
-                  href={l.href}
-                  onClick={() => setOpen(false)}
-                  className="block px-4 py-2 text-sm text-slate-300 transition hover:bg-slate-800/60 hover:text-slate-100"
-                >
-                  {l.label}
-                </Link>
-              ),
-            )}
-            <div className="mx-2 my-1.5 border-t border-slate-800" />
-            <Link
-              href="/token-shield"
-              onClick={() => setOpen(false)}
-              className="mx-2 block rounded-lg bg-teal-400 px-3 py-2 text-center text-sm font-semibold text-slate-900 transition hover:bg-teal-300"
-            >
-              Check a token
-            </Link>
+        <div className="flex items-center gap-3">
+          <div className="hidden sm:block">
+            <ConnectButton />
           </div>
-        )}
+
+          <div ref={menuRef} className="relative md:hidden">
+            <button
+              type="button"
+              aria-label="Open menu"
+              aria-expanded={open}
+              onClick={() => setOpen((value) => !value)}
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-white/[0.08] text-[#E6EAF2] transition-colors hover:border-[#44DCEA]/40"
+            >
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                {open ? (
+                  <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
+                ) : (
+                  <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
+                )}
+              </svg>
+            </button>
+
+            {open && (
+              <div className="absolute right-0 top-12 w-56 overflow-hidden rounded-xl border border-white/[0.08] bg-[#0D1322] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.8)]">
+                <ul className="py-2">
+                  {NAV_LINKS.map((link) => (
+                    <li key={link.href}>
+                      {link.external ? (
+                        <a
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => setOpen(false)}
+                          className="block px-4 py-2.5 text-sm text-[#8A93A6] transition-colors hover:bg-white/[0.04] hover:text-[#E6EAF2]"
+                        >
+                          {link.label}
+                        </a>
+                      ) : (
+                        <Link
+                          href={link.href}
+                          onClick={() => setOpen(false)}
+                          className="block px-4 py-2.5 text-sm text-[#8A93A6] transition-colors hover:bg-white/[0.04] hover:text-[#E6EAF2]"
+                        >
+                          {link.label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <div className="border-t border-white/[0.06] p-3 sm:hidden">
+                  <ConnectButton />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </header>
   );

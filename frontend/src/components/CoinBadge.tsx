@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
 import {
   type CoinScore,
+  type CoinTier,
   TIER_STYLE,
   CONFIDENCE_LABEL,
   flagLabel,
@@ -30,50 +33,25 @@ function timeAgo(iso: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-/** Circular gauge that fills proportional to score, in the tier color. */
-function ScoreGauge({ score, color }: { score: number; color: string }) {
-  const r = 26;
-  const c = 2 * Math.PI * r;
-  const filled = (score / 100) * c;
-  return (
-    <div className="relative h-[68px] w-[68px] shrink-0">
-      <svg viewBox="0 0 68 68" className="h-full w-full -rotate-90">
-        <circle
-          cx="34"
-          cy="34"
-          r={r}
-          fill="none"
-          stroke="rgba(148,163,184,0.16)"
-          strokeWidth="5"
-        />
-        <circle
-          cx="34"
-          cy="34"
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeDasharray={`${filled} ${c - filled}`}
-          style={{ transition: "stroke-dasharray 0.6s ease" }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-xl font-bold" style={{ color }}>
-          {score}
-        </span>
-      </div>
-    </div>
-  );
-}
+type BadgeIntent = "success" | "warn" | "danger" | "accent";
 
-function SignalRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between py-1.5 text-sm">
-      <span className="text-slate-400">{label}</span>
-      <span className="font-medium text-slate-200">{value}</span>
-    </div>
-  );
+/**
+ * Maps the tier the oracle already provides to a Badge intent. No score
+ * thresholds live here, the tier label is the single source of truth.
+ */
+function tierIntent(tier: CoinTier): BadgeIntent {
+  switch (tier) {
+    case "VERIFIED":
+    case "HIGH":
+      return "success";
+    case "MEDIUM":
+      return "warn";
+    case "LOW":
+    case "FLAGGED":
+      return "danger";
+    default:
+      return "accent";
+  }
 }
 
 interface CoinBadgeProps {
@@ -86,130 +64,117 @@ export function CoinBadge({ score, defaultExpanded = false }: CoinBadgeProps) {
   const tier = TIER_STYLE[score.tier];
   const s = score.signals;
 
+  // Same signal set as before, formatted into label/value chips.
+  const signals: Array<{ label: string; value: string }> = [
+    {
+      label: "Age",
+      value: s.ageInDays === null ? "unknown" : `${s.ageInDays} days`,
+    },
+    { label: "Holders", value: fmtNum(s.holderCount) },
+    { label: "Transfers", value: fmtNum(s.transferCount) },
+    { label: "Liquidity", value: fmtUsd(s.liquidityUsd) },
+    {
+      label: "Top 10 hold",
+      value:
+        s.supplyConcentrationTop10Pct === null
+          ? "unknown"
+          : `${s.supplyConcentrationTop10Pct.toFixed(1)}%`,
+    },
+    {
+      label: "Deployer score",
+      value: s.deployerScore === null ? "unscored" : `${s.deployerScore}`,
+    },
+    {
+      label: "Metadata",
+      value: s.hasVerifiedMetadata ? "verified" : "unverified",
+    },
+    { label: "Supply", value: s.mintable ? "mintable" : "fixed" },
+  ];
+
   return (
-    <div
-      className="w-full overflow-hidden rounded-2xl border backdrop-blur-sm"
-      style={{
-        borderColor: `${tier.color}40`,
-        background:
-          "linear-gradient(160deg, rgba(17,26,48,0.92), rgba(11,17,32,0.92))",
-        boxShadow: `0 0 0 1px ${tier.color}10, 0 20px 50px -20px ${tier.color}55`,
-      }}
-    >
-      {/* top accent line */}
-      <div
-        className="h-[3px] w-full"
-        style={{
-          background: `linear-gradient(90deg, ${tier.color}, transparent)`,
-        }}
-      />
-
-      <div className="p-5">
-        <div className="flex items-start gap-4">
-          <ScoreGauge score={score.score} color={tier.color} />
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              {score.metadata.iconUrl && (
-                /* eslint-disable-next-line @next/next/no-img-element */
-                <img
-                  src={score.metadata.iconUrl}
-                  alt=""
-                  className="h-4 w-4 shrink-0 rounded-full object-cover"
-                />
-              )}
-              <span className="truncate font-semibold text-slate-100">
-                {score.metadata.name}
-              </span>
-              {score.verified && (
-                <span style={{ color: tier.color }} aria-label="verified">
-                  &#10003;
-                </span>
-              )}
-            </div>
-            <div className="text-xs text-slate-500">{score.metadata.symbol}</div>
-
-            <div className="mt-2.5 flex flex-wrap items-center gap-2">
-              <span
-                className="rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide"
-                style={{
-                  backgroundColor: `${tier.color}1f`,
-                  color: tier.color,
-                }}
-              >
-                {tier.label}
-              </span>
-              <span className="text-xs text-slate-500">
-                {CONFIDENCE_LABEL[score.confidence]}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <p className="mt-3.5 text-sm text-slate-400">{tier.blurb}</p>
-
-        {score.flags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {score.flags.map((code) => (
-              <span
-                key={code}
-                className="rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-0.5 text-[11px] font-medium text-rose-300"
-              >
-                {flagLabel(code)}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-slate-400 transition hover:text-slate-200"
-        >
-          {open ? "Hide signals" : "Show signals"}
-          <span
-            className="transition-transform"
-            style={{ transform: open ? "rotate(180deg)" : "none" }}
-          >
-            &#8964;
-          </span>
-        </button>
-
-        {open && (
-          <div className="mt-2 border-t border-slate-800 pt-2">
-            <SignalRow
-              label="Age"
-              value={s.ageInDays === null ? "unknown" : `${s.ageInDays} days`}
-            />
-            <SignalRow label="Holders" value={fmtNum(s.holderCount)} />
-            <SignalRow label="Transfers" value={fmtNum(s.transferCount)} />
-            <SignalRow label="Liquidity" value={fmtUsd(s.liquidityUsd)} />
-            <SignalRow
-              label="Top 10 hold"
-              value={
-                s.supplyConcentrationTop10Pct === null
-                  ? "unknown"
-                  : `${s.supplyConcentrationTop10Pct.toFixed(1)}%`
-              }
-            />
-            <SignalRow
-              label="Deployer score"
-              value={
-                s.deployerScore === null ? "unscored" : `${s.deployerScore}`
-              }
-            />
-            <SignalRow
-              label="Metadata"
-              value={s.hasVerifiedMetadata ? "verified" : "unverified"}
-            />
-            <SignalRow label="Supply" value={s.mintable ? "mintable" : "fixed"} />
-          </div>
-        )}
-
-        <div className="mt-4 text-[11px] text-slate-600">
-          Scored {timeAgo(score.scoredAt)}
-        </div>
+    <Card className="w-full">
+      <div className="break-all rounded-lg border border-white/[0.08] bg-[#0A0F1E] px-3 py-2 font-mono text-xs text-[#8A93A6]">
+        {score.coinType}
       </div>
-    </div>
+
+      <div className="mt-5 flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            {score.metadata.iconUrl && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={score.metadata.iconUrl}
+                alt=""
+                className="h-5 w-5 shrink-0 rounded-full object-cover"
+              />
+            )}
+            <span className="truncate font-display font-semibold tracking-tight text-[#E6EAF2]">
+              {score.metadata.name}
+            </span>
+            {score.verified && (
+              <span className="text-[#44DCEA]" aria-label="verified">
+                &#10003;
+              </span>
+            )}
+          </div>
+          <div className="mt-0.5 font-mono text-xs uppercase tracking-[0.18em] text-[#5A6478]">
+            {score.metadata.symbol}
+          </div>
+        </div>
+        <Badge intent={tierIntent(score.tier)}>{tier.label}</Badge>
+      </div>
+
+      <div className="mt-5 flex items-center justify-between">
+        <div className="flex items-end gap-2">
+          <span className="font-display text-4xl font-semibold leading-none text-[#E6EAF2]">
+            {score.score}
+          </span>
+          <span className="mb-1 font-mono text-[11px] uppercase tracking-[0.15em] text-[#5A6478]">
+            score
+          </span>
+        </div>
+        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-[#5A6478]">
+          {CONFIDENCE_LABEL[score.confidence]}
+        </span>
+      </div>
+
+      <p className="mt-4 text-sm leading-relaxed text-[#8A93A6]">{tier.blurb}</p>
+
+      {score.flags.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {score.flags.map((code) => (
+            <Badge key={code} intent="danger">
+              {flagLabel(code)}
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="mt-5 inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-[#5A6478] transition hover:text-[#8A93A6]"
+      >
+        {open ? "Hide signals" : "Show signals"}
+        <span
+          className="transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "none" }}
+        >
+          &#8964;
+        </span>
+      </button>
+
+      {open && (
+        <div className="mt-3 flex flex-wrap gap-2 border-t border-white/[0.08] pt-4">
+          {signals.map((sig) => (
+            <Badge key={sig.label}>{`${sig.label} ${sig.value}`}</Badge>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-5 font-mono text-[11px] uppercase tracking-[0.18em] text-[#5A6478]">
+        Scored {timeAgo(score.scoredAt)}
+      </div>
+    </Card>
   );
 }

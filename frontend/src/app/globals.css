@@ -2,7 +2,7 @@
 
 /*
  * TrustGate brand theme. Dark navy base, single cold-cyan accent, high contrast.
- * Headings use Syne (--font-syne), body uses Geist (--font-geist).
+ * Headings and body use Geist (--font-geist); code uses Geist Mono (--font-geist-mono).
  */
 @theme {
   --color-navy: #0a0f1e;
@@ -17,7 +17,8 @@
   --color-negative: #f87171;
 
   --font-sans: var(--font-geist);
-  --font-display: var(--font-syne);
+  --font-display: var(--font-geist);
+  --font-mono: var(--font-geist-mono);
 }
 
 html,
