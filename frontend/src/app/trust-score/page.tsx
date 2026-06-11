@@ -22,7 +22,61 @@ export default function TrustScorePage() {
   const [query, setQuery] = useState<string | undefined>(undefined);
   const [invalid, setInvalid] = useState(false);
   const account = useCurrentAccount();
-  const { data, isFetching, isError } = useTrustScore(query);
+  const { data, isFetching, isError, refetch } = useTrustScore(query);
+
+  // Local state for the on-demand scoring flow in the not-scored branch only.
+  // "idle": show the score prompt. "pending": request and on-chain polling in
+  // flight. "error": the oracle trigger failed. "timeout": the oracle accepted
+  // but the on-chain write has not landed within the poll window.
+  type ScoringState = "idle" | "pending" | "error" | "timeout";
+  const [scoringState, setScoringState] = useState<ScoringState>("idle");
+  const [scoreError, setScoreError] = useState<string | null>(null);
+  // The address the scoring state belongs to. When the looked-up query differs,
+  // the scoring state is stale from a previous lookup and reads as idle, so a
+  // new lookup never inherits another address's scoring UI.
+  const [scoringFor, setScoringFor] = useState<string | undefined>(undefined);
+  const scoring: ScoringState = scoringFor === query ? scoringState : "idle";
+
+  // Triggers a live score, then polls the on-chain read until the score lands.
+  // The oracle response is only a trigger and an error signal; the number shown
+  // always comes from the existing useTrustScore on-chain read, never from here.
+  const scoreWallet = async () => {
+    if (!query) return;
+    setScoringFor(query);
+    setScoringState("pending");
+    setScoreError(null);
+
+    let body: { ok?: boolean; error?: string };
+    try {
+      const res = await fetch("/api/score-wallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: query }),
+      });
+      body = (await res.json()) as { ok?: boolean; error?: string };
+    } catch {
+      setScoringState("error");
+      setScoreError("Could not reach the scoring service.");
+      return;
+    }
+
+    if (!body.ok) {
+      setScoringState("error");
+      setScoreError(body.error ?? "Scoring failed, try again.");
+      return;
+    }
+
+    // Poll the on-chain read about every 3 seconds, up to 12 attempts. As soon
+    // as a real score appears (data is no longer null), the has-score branch
+    // renders the WalletScoreCard from the chain read and we stop.
+    for (let attempt = 0; attempt < 12; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      const result = await refetch();
+      if (result.data) return;
+    }
+
+    setScoringState("timeout");
+  };
 
   const run = (value: string) => {
     const v = value.trim();
@@ -115,15 +169,53 @@ export default function TrustScorePage() {
 
             {data && query && <WalletScoreCard score={data} address={query} />}
 
-            {data === null && query && !isFetching && (
+            {data === null && query && (!isFetching || scoring !== "idle") && (
               <Card>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-                  <Badge intent="default">Unscored</Badge>
-                  <span className="text-sm leading-relaxed text-[#8A93A6]">
-                    This wallet has not been scored yet. Trust scores are written
-                    on-chain by the oracle, so an address only shows a score once
-                    it has been scored.
-                  </span>
+                {scoring === "error" ? (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                    <Badge intent="danger">Scoring failed</Badge>
+                    <span className="text-sm leading-relaxed text-[#8A93A6]">
+                      {scoreError}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+                    <Badge intent="default">Unscored</Badge>
+                    <span className="text-sm leading-relaxed text-[#8A93A6]">
+                      This wallet has not been scored yet. Trust scores are
+                      written on-chain by the oracle, so an address only shows a
+                      score once it has been scored.
+                    </span>
+                  </div>
+                )}
+
+                <div className="mt-5">
+                  {scoring === "pending" ? (
+                    <div className="flex flex-col gap-3">
+                      <Button disabled>Score this wallet</Button>
+                      <span className="text-sm text-[#8A93A6]">
+                        Scoring this wallet, this can take a moment.
+                      </span>
+                    </div>
+                  ) : scoring === "timeout" ? (
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                      <Button
+                        onClick={() => {
+                          setScoringState("idle");
+                          void refetch();
+                        }}
+                      >
+                        Refresh
+                      </Button>
+                      <span className="text-sm text-[#8A93A6]">
+                        Score is being written on-chain. Refresh in a moment.
+                      </span>
+                    </div>
+                  ) : (
+                    <Button onClick={() => void scoreWallet()}>
+                      Score this wallet
+                    </Button>
+                  )}
                 </div>
               </Card>
             )}
